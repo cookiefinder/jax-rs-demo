@@ -4,6 +4,7 @@ import com.firenze.annotation.Path;
 import com.firenze.resolve.Resolver;
 import com.firenze.resolve.Resource;
 import com.firenze.resolve.Response;
+import com.tw.FushengContainer;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,13 +20,10 @@ import static java.util.stream.Collectors.toList;
 import static org.reflections.scanners.Scanners.SubTypes;
 
 public class ResourceLoader {
-    private final ApplicationContext applicationContext;
-
-    public ResourceLoader(ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
-    }
+    private FushengContainer fushengContainer;
 
     public List<Resolver> load(Class<?> source) {
+        fushengContainer = FushengContainer.startup(source);
         Reflections reflections = new Reflections(source.getPackage().getName(), SubTypes.filterResultsBy(c -> true));
         Set<Class<?>> allClasses = reflections.getSubTypesOf(Object.class);
         List<Class<?>> rootResources = allClasses.stream()
@@ -39,7 +37,8 @@ public class ResourceLoader {
 
     private List<Resolver> loadResource(Class<?> root, String path) {
         String rootPath = ofNullable(root.getDeclaredAnnotation(Path.class)).map(Path::value).orElse(path);
-        Object subject = applicationContext.getBean(root);
+        Object subject = fushengContainer.getComponent(root).stream().findFirst()
+                .orElseThrow(() -> new RuntimeException("Duplicated resource " + root.getName()));
         List<Resolver> resolvers = new ArrayList<>();
         Arrays.stream(root.getMethods()).forEach(method -> {
             Path pathAnnotation = method.getDeclaredAnnotation(Path.class);
