@@ -43,7 +43,7 @@ class DispatcherServletTest {
         HttpServletRequest req = spy(HttpServletRequest.class);
         doReturn("/teams").when(req).getRequestURI();
         doReturn("GET").when(req).getMethod();
-        doReturn(Map.of("name", new String[]{"A"})).when(req).getParameterMap();
+        doReturn("A").when(req).getParameter("name");
         doReturn(null).when(req).getInputStream();
         HttpServletResponse resp = spy(HttpServletResponse.class);
         PrintWriter writer = mock(PrintWriter.class);
@@ -84,7 +84,7 @@ class DispatcherServletTest {
         HttpServletRequest req = spy(HttpServletRequest.class);
         doReturn("/teams/1/users").when(req).getRequestURI();
         doReturn("GET").when(req).getMethod();
-        doReturn(Map.of("names", new String[]{"A", "B"})).when(req).getParameterMap();
+        doReturn("A,B").when(req).getParameter("names");
         doReturn(null).when(req).getInputStream();
         HttpServletResponse resp = spy(HttpServletResponse.class);
         PrintWriter writer = mock(PrintWriter.class);
@@ -214,7 +214,7 @@ class DispatcherServletTest {
             public int read() throws IOException {
                 int i;
                 if (!isFinished()) {
-                    i = bytes[lastIndexRetrieved+1];
+                    i = bytes[lastIndexRetrieved + 1];
                     lastIndexRetrieved++;
                     if (isFinished() && (readListener != null)) {
                         try {

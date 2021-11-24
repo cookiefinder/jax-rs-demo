@@ -1,6 +1,5 @@
 package com.firenze.http;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.firenze.annotation.PathParam;
 import com.firenze.annotation.QueryParam;
@@ -11,42 +10,47 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.springframework.core.LocalVariableTableParameterNameDiscoverer;
+import org.springframework.core.ParameterNameDiscoverer;
 
 public class HttpUtils {
     public static Object[] getInvokedMethodParams(Method method,
                                                   String path,
                                                   HttpServletRequest request) {
+        AtomicInteger index = new AtomicInteger();
         ObjectMapper objectMapper = new ObjectMapper();
+        ParameterNameDiscoverer discoverer = new LocalVariableTableParameterNameDiscoverer();
+        String[] parameterNames = discoverer.getParameterNames(method);
+        if (Objects.isNull(parameterNames) || Objects.equals(parameterNames.length, 0)) {
+            return new Object[0];
+        }
         return Arrays.stream(method.getParameters()).map(parameter -> {
-            if (Objects.nonNull(parameter.getAnnotation(QueryParam.class))) {
-                String paramValue = request.getParameter(parameter.getName());
-                if (Collection.class.isAssignableFrom(parameter.getType())) {
-                    String[] splitParams = paramValue.split(",");
-                    return Arrays.stream(splitParams).collect(Collectors.toList());
+            try {
+                String parameterName = parameterNames[index.getAndIncrement()];
+                if (Objects.nonNull(parameter.getAnnotation(QueryParam.class))) {
+                    String paramValue = request.getParameter(parameterName);
+                    if (Collection.class.isAssignableFrom(parameter.getType())) {
+                        String[] splitParams = paramValue.split(",");
+                        return Arrays.stream(splitParams).collect(Collectors.toList());
+                    }
+                    return paramValue;
                 }
-                return paramValue;
-            }
-            if (Objects.nonNull(parameter.getAnnotation(RequestBody.class))) {
-                try {
+                if (Objects.nonNull(parameter.getAnnotation(RequestBody.class))) {
                     return objectMapper.readValue(request.getInputStream(), parameter.getType());
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
-            }
-            if (Objects.nonNull(parameter.getAnnotation(PathParam.class))) {
-                Map<String, String> map = HttpPathMatcher.extractPathVariable(path, request.getRequestURI());
-                String paramName = parameter.getName();
-                String value = map.get(paramName);
-                try {
+                if (Objects.nonNull(parameter.getAnnotation(PathParam.class))) {
+                    Map<String, String> map = HttpPathMatcher.extractPathVariable(path, request.getRequestURI());
+                    String value = map.get(parameterName);
                     return objectMapper.readValue(value, parameter.getType());
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace();
                 }
+                throw new RuntimeException("Not found parameter, parameter name is " + parameterName);
+            } catch (Exception anyEx) {
+                throw new RuntimeException(anyEx.getMessage());
             }
-            return null;
         }).toArray();
     }
 
