@@ -49,7 +49,7 @@ public class ResourceLoader {
                     .findFirst().orElse(null);
             if (Objects.nonNull(methodClass)) {
                 String currentPath = ofNullable(pathAnnotation).map(Path::value).orElse("");
-                Response response = Response.of(path + rootPath + currentPath, methodClass.getSimpleName(), method, subject);
+                Response response = Response.of(rootPath + currentPath, methodClass.getSimpleName(), method, subject);
                 resolvers.add(response);
             } else if (Objects.nonNull(pathAnnotation)) {
                 String resourcePath = rootPath + pathAnnotation.value();
