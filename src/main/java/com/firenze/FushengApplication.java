@@ -33,6 +33,7 @@ public class FushengApplication {
     public static void showDown() {
         try {
             tomcat.stop();
+            tomcat.destroy();
         } catch (LifecycleException e) {
             System.out.println("Stop error, " + e.getMessage());
             e.printStackTrace();

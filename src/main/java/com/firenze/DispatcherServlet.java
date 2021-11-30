@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.firenze.http.HttpUtils;
 import com.firenze.resolve.Resolver;
 import com.firenze.resolve.Response;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
@@ -58,8 +59,14 @@ public class DispatcherServlet extends HttpServlet {
                     req));
             HttpUtils.ok(resp, objectMapper.writeValueAsString(invokedResult));
         } catch (Exception anyEx) {
-            System.out.println(anyEx.getMessage());
-            HttpUtils.error(resp, anyEx.getMessage());
+            String errMsg;
+            if (anyEx instanceof InvocationTargetException) {
+                errMsg = ((InvocationTargetException) anyEx).getTargetException().getMessage();
+            } else {
+                errMsg = anyEx.getMessage();
+            }
+            System.out.println(errMsg);
+            HttpUtils.error(resp, errMsg);
         }
     }
 }
